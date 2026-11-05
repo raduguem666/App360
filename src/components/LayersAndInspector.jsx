@@ -18,6 +18,7 @@ import {
   Eye,
   EyeOff,
   CheckSquare,
+  Square,
   Navigation,
   Settings2,
   Building2,

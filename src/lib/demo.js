@@ -345,7 +345,7 @@ export async function buildDemoProject(onProgress = () => {}) {
   for (let i = 0; i < DEMO_CAMERAS.length; i++) {
     const cam = DEMO_CAMERAS[i];
     onProgress(`Renderizando panorama 360° ${i + 1}/${DEMO_CAMERAS.length}…`, i / (DEMO_CAMERAS.length + 1));
-    const blob = await renderPanorama(cam, 4096, (p) =>
+    const blob = await renderPanorama(cam, 2048, (p) =>
       onProgress(`Renderizando panorama 360° ${i + 1}/${DEMO_CAMERAS.length}…`, (i + p) / (DEMO_CAMERAS.length + 1)),
     );
     const imageId = uid('img');
