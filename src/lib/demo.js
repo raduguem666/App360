@@ -20,8 +20,8 @@ const DEV_X = PX * 3; // 336 → 6 quadras em X
 const DEV_Z = PZ * 3; // 186 → 6 quadras em Z
 
 export const DEMO_CAMERAS = [
-  { name: 'Drone 01 — Portaria', x: 0, z: 0, h: 95 },
-  { name: 'Drone 02 — Área Verde', x: -PX * 2, z: PZ * 2, h: 75 },
+  { name: 'Drone 01 — Portaria', subtitle: 'Altitude 95m • Entrada Principal e Acesso', x: 0, z: 0, h: 95 },
+  { name: 'Drone 02 — Área Verde', subtitle: 'Altitude 75m • Bosque Preservado e Lazer', x: -PX * 2, z: PZ * 2, h: 75 },
 ];
 
 /* --------------------------------------------------------------- ruído */
@@ -272,6 +272,44 @@ export async function renderMasterplan(width = 1760) {
   return new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.88));
 }
 
+export async function renderDemoLogo() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 440;
+  canvas.height = 110;
+  const ctx = canvas.getContext('2d');
+  // Fundo translúcido escuro
+  ctx.fillStyle = 'rgba(18, 18, 18, 0.9)';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, 440, 110, 18);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(163, 230, 53, 0.5)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Ícone verde lima
+  ctx.fillStyle = '#a3e635';
+  ctx.beginPath();
+  ctx.roundRect(20, 20, 70, 70, 14);
+  ctx.fill();
+  ctx.fillStyle = '#121212';
+  ctx.font = '900 34px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('360', 55, 57);
+
+  // Tipografia da Empresa
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 24px Inter, system-ui, sans-serif';
+  ctx.fillText('VISTA VERDE', 106, 48);
+  ctx.fillStyle = '#a3e635';
+  ctx.font = '700 13px Inter, system-ui, sans-serif';
+  ctx.letterSpacing = '0.08em';
+  ctx.fillText('LOTE360 EMPREENDIMENTOS', 106, 74);
+
+  return new Promise((res) => canvas.toBlob(res, 'image/png'));
+}
+
 /* ------------------------------------------------- posições exatas na foto */
 function worldToSpherical(cam, X, Z, Y = 0) {
   const dX = X - cam.x;
@@ -316,20 +354,29 @@ export async function buildDemoProject(onProgress = () => {}) {
     scenes.push({
       id: uid('scn'),
       name: cam.name,
+      subtitle: cam.subtitle || '',
+      showTitleOnPano: true,
       imageId,
       initialView: { yaw: 0, pitch: -0.55, zoom: 35 },
       mapPos: { x: +mp.x.toFixed(4), y: +mp.y.toFixed(4) },
       mapHeading: 0,
     });
   }
-  onProgress('Gerando masterplan 2D…', DEMO_CAMERAS.length / (DEMO_CAMERAS.length + 1));
+  onProgress('Gerando masterplan 2D e marca da empresa…', DEMO_CAMERAS.length / (DEMO_CAMERAS.length + 1));
   const mpBlob = await renderMasterplan();
   const mpId = uid('img');
   images[mpId] = mpBlob;
 
+  const logoBlob = await renderDemoLogo();
+  const logoId = uid('img');
+  images[logoId] = logoBlob;
+
   project.scenes = scenes;
   project.startSceneId = scenes[0].id;
   project.masterplan = { imageId: mpId };
+  project.settings.branding.logoImageId = logoId;
+  project.settings.branding.enabled = true;
+  project.settings.branding.watermarkText = 'Residencial Vista Verde • Lote360';
 
   // hotspots de transição (no chão, sobre a posição da outra câmera)
   const [c1, c2] = DEMO_CAMERAS;

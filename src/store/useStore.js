@@ -318,14 +318,62 @@ export const useStore = create((set, get) => ({
     get().showToast(`${nb.name} clonada. Arraste os 4 pinos para alinhar nesta cena.`, 'ok');
   },
 
-  /* ------------------------------------------------------------ ajustes */
+  /* ------------------------------------------------------------ ajustes e marca */
   updateSettings: (patch) => get().commit((p) => ({ ...p, settings: { ...p.settings, ...patch } })),
   updateAction: (patch) => get().commit((p) => ({ ...p, settings: { ...p.settings, action: { ...p.settings.action, ...patch } } })),
+  updateBranding: (patch) =>
+    get().commit((p) => ({
+      ...p,
+      settings: {
+        ...p.settings,
+        branding: { ...(p.settings?.branding || {}), ...patch },
+      },
+    })),
+  setCompanyLogoFile: async (file) => {
+    const imageId = uid('img');
+    await putImage(imageId, file);
+    const url = URL.createObjectURL(file);
+    set((s) => ({ imageUrls: { ...s.imageUrls, [imageId]: url } }));
+    get().commit((p) => ({
+      ...p,
+      settings: {
+        ...p.settings,
+        branding: {
+          ...(p.settings?.branding || {}),
+          logoImageId: imageId,
+          enabled: true,
+        },
+      },
+    }));
+    get().showToast('Logo da empresa atualizado com sucesso!', 'ok');
+  },
+  removeCompanyLogo: () => {
+    get().commit((p) => ({
+      ...p,
+      settings: {
+        ...p.settings,
+        branding: {
+          ...(p.settings?.branding || {}),
+          logoImageId: null,
+        },
+      },
+    }));
+    get().showToast('Logo da empresa removido.', 'ok');
+  },
   renameProject: (name) => get().commit((p) => ({ ...p, name })),
 }));
 
 function newScene(name, imageId) {
-  return { id: uid('scn'), name, imageId, initialView: { yaw: 0, pitch: -0.4, zoom: 40 }, mapPos: null, mapHeading: 0 };
+  return {
+    id: uid('scn'),
+    name,
+    subtitle: '',
+    showTitleOnPano: true,
+    imageId,
+    initialView: { yaw: 0, pitch: -0.4, zoom: 40 },
+    mapPos: null,
+    mapHeading: 0,
+  };
 }
 
 function dedupe(points) {

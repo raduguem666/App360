@@ -46,6 +46,7 @@ import LayersAndInspector from './components/LayersAndInspector.jsx';
 import MasterplanWidget from './components/MasterplanWidget.jsx';
 import BlockGeneratorModal from './components/BlockGeneratorModal.jsx';
 import PresentationView from './components/PresentationView.jsx';
+import PanoOverlayBranding from './components/PanoOverlayBranding.jsx';
 
 export default function App() {
   const viewerRef = useRef(null);
@@ -75,6 +76,7 @@ export default function App() {
   const loadProject = useStore((s) => s.loadProject);
   const setActiveScene = useStore((s) => s.setActiveScene);
   const updateScene = useStore((s) => s.updateScene);
+  const setCompanyLogoFile = useStore((s) => s.setCompanyLogoFile);
   const setMasterplanFile = useStore((s) => s.setMasterplanFile);
   const removeMasterplan = useStore((s) => s.removeMasterplan);
   const addDraftPoint = useStore((s) => s.addDraftPoint);
@@ -466,6 +468,16 @@ export default function App() {
               Envie um panorama 360° no painel esquerdo para começar.
             </div>
           )}
+
+          {/* Logo da Empresa e Identificação da Foto 360° */}
+          <PanoOverlayBranding
+            project={project}
+            imageUrls={imageUrls}
+            activeScene={activeScene}
+            editable={true}
+            onUpdateScene={updateScene}
+            onUploadLogo={setCompanyLogoFile}
+          />
 
           {/* HUD Flutuante da Ferramenta Ativa */}
           {tool === 'polygon' && (

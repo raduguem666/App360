@@ -181,10 +181,16 @@ export default function ScenesPanel({ onCaptureInitialView }) {
                   className="p-2 bg-ink-900 border-t border-white/[0.06] space-y-1.5"
                 >
                   <input
-                    className="field !py-1 !text-xs"
+                    className="field !py-1 !text-xs font-semibold"
                     value={scene.name}
                     onChange={(e) => updateScene(scene.id, { name: e.target.value })}
-                    placeholder="Nome da cena"
+                    placeholder="Nome da cena (ex: Drone 01)"
+                  />
+                  <input
+                    className="field !py-1 !text-[11px]"
+                    value={scene.subtitle || ''}
+                    onChange={(e) => updateScene(scene.id, { subtitle: e.target.value })}
+                    placeholder="Subtítulo na foto (ex: Altitude 95m)"
                   />
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-0.5">

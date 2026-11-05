@@ -18,9 +18,14 @@ import {
   Eye,
   EyeOff,
   CheckSquare,
-  Square,
   Navigation,
   Settings2,
+  Building2,
+  Camera,
+  Upload,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Type,
 } from 'lucide-react';
 import { useStore } from '../store/useStore.js';
 import {
@@ -36,6 +41,7 @@ export default function LayersAndInspector({ onFocusLot, onFocusHotspot }) {
   const [collapsedBlocks, setCollapsedBlocks] = useState({});
 
   const project = useStore((s) => s.project);
+  const imageUrls = useStore((s) => s.imageUrls);
   const activeSceneId = useStore((s) => s.activeSceneId);
   const selectedLotIds = useStore((s) => s.selectedLotIds);
   const selectedBlockId = useStore((s) => s.selectedBlockId);
@@ -58,6 +64,10 @@ export default function LayersAndInspector({ onFocusLot, onFocusHotspot }) {
   const removeHotspot = useStore((s) => s.removeHotspot);
   const updateSettings = useStore((s) => s.updateSettings);
   const updateAction = useStore((s) => s.updateAction);
+  const updateBranding = useStore((s) => s.updateBranding);
+  const setCompanyLogoFile = useStore((s) => s.setCompanyLogoFile);
+  const removeCompanyLogo = useStore((s) => s.removeCompanyLogo);
+  const updateScene = useStore((s) => s.updateScene);
 
   const selectedSet = useMemo(() => new Set(selectedLotIds), [selectedLotIds]);
 
@@ -144,8 +154,14 @@ export default function LayersAndInspector({ onFocusLot, onFocusHotspot }) {
       {tab === 'settings' ? (
         <SettingsTab
           project={project}
+          imageUrls={imageUrls}
+          activeScene={activeScene}
           updateSettings={updateSettings}
           updateAction={updateAction}
+          updateBranding={updateBranding}
+          setCompanyLogoFile={setCompanyLogoFile}
+          removeCompanyLogo={removeCompanyLogo}
+          updateScene={updateScene}
         />
       ) : (
         <div className="flex-1 flex flex-col min-h-0">
@@ -761,19 +777,227 @@ function HotspotInspector({ hotspot, scenes, onChange, onDelete }) {
   );
 }
 
-/* ----------------------------------------------------- Aba de Configurações do Player */
-function SettingsTab({ project, updateSettings, updateAction }) {
+/* ----------------------------------------------------- Aba de Configurações do Player e Marca */
+function SettingsTab({
+  project,
+  imageUrls,
+  activeScene,
+  updateSettings,
+  updateAction,
+  updateBranding,
+  setCompanyLogoFile,
+  removeCompanyLogo,
+  updateScene,
+}) {
+  const logoInputRef = useState(null);
   const settings = project.settings || {};
+  const branding = settings.branding || {};
   const action = settings.action || {};
+  const logoUrl = branding.logoImageId ? imageUrls[branding.logoImageId] : null;
 
   return (
     <div className="flex-1 overflow-y-auto p-3.5 space-y-4">
+      {/* -------------------- 1. LOGO DA EMPRESA -------------------- */}
+      <div className="rounded-xl p-3.5 bg-ink-900/80 border border-white/[0.06] space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="label-xs text-lime flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5" />
+            Logo da Empresa / Construtora
+          </div>
+          <label className="text-[11px] text-soft flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={branding.enabled !== false}
+              onChange={(e) => updateBranding({ enabled: e.target.checked })}
+              className="accent-[#a3e635] w-3.5 h-3.5"
+            />
+            Ativar
+          </label>
+        </div>
+
+        {/* Upload / Preview do Logo */}
+        <div className="flex items-center gap-3">
+          <div className="relative w-20 h-14 rounded-lg bg-ink-950 border border-white/10 flex items-center justify-center overflow-hidden p-1">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo da Empresa"
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <div className="text-center text-[10px] text-mute flex flex-col items-center">
+                <ImageIcon className="w-4 h-4 mb-0.5 text-mute" />
+                Sem logo
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 space-y-1.5">
+            <label className="btn-primary !py-1 !px-2.5 text-xs cursor-pointer inline-flex items-center gap-1.5">
+              <Upload className="w-3.5 h-3.5" />
+              {logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setCompanyLogoFile(f);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {logoUrl && (
+              <button
+                type="button"
+                onClick={removeCompanyLogo}
+                className="btn-danger !py-1 !px-2 text-xs ml-1.5 inline-flex items-center gap-1"
+              >
+                <Trash2 className="w-3 h-3" />
+                Remover
+              </button>
+            )}
+            <p className="text-[10px] text-mute leading-tight">
+              Formatos recomendados: PNG transparente ou SVG
+            </p>
+          </div>
+        </div>
+
+        {/* Nome da Empresa */}
+        <div>
+          <label className="label-xs block mb-1">Nome da Empresa</label>
+          <input
+            className="field"
+            value={settings.companyName || ''}
+            onChange={(e) => updateSettings({ companyName: e.target.value })}
+            placeholder="Ex: Lote360 Empreendimentos"
+          />
+        </div>
+
+        {/* Posição e Altura do Logo na Tela */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="label-xs block mb-1">Posição do Logo</label>
+            <select
+              className="field !py-1 !text-xs"
+              value={branding.position || 'top-left'}
+              onChange={(e) => updateBranding({ position: e.target.value })}
+            >
+              <option value="top-left">Superior Esquerdo</option>
+              <option value="top-right">Superior Direito</option>
+              <option value="bottom-left">Inferior Esquerdo</option>
+            </select>
+          </div>
+          <div>
+            <label className="label-xs block mb-1">
+              Altura do Logo: <strong className="text-white">{branding.height || 38}px</strong>
+            </label>
+            <input
+              type="range"
+              min="24"
+              max="72"
+              value={branding.height || 38}
+              onChange={(e) => updateBranding({ height: +e.target.value })}
+              className="w-full accent-[#a3e635] mt-1"
+            />
+          </div>
+        </div>
+
+        {/* Link do Logo */}
+        <div>
+          <label className="label-xs block mb-1 flex items-center gap-1">
+            <LinkIcon className="w-3 h-3" />
+            Link ao Clicar no Logo (Opcional)
+          </label>
+          <input
+            className="field !py-1 !text-xs"
+            value={branding.companyUrl || ''}
+            onChange={(e) => updateBranding({ companyUrl: e.target.value })}
+            placeholder="https://suaimobiliaria.com.br"
+          />
+        </div>
+      </div>
+
+      {/* -------------------- 2. NOME NA IMAGEM 360° -------------------- */}
+      <div className="rounded-xl p-3.5 bg-ink-900/80 border border-white/[0.06] space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="label-xs text-lime flex items-center gap-1.5">
+            <Type className="w-3.5 h-3.5" />
+            Nome e Identificação na Imagem 360°
+          </div>
+          <label className="text-[11px] text-soft flex items-center gap-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={branding.showSceneTitleOnPano !== false}
+              onChange={(e) => updateBranding({ showSceneTitleOnPano: e.target.checked })}
+              className="accent-[#a3e635] w-3.5 h-3.5"
+            />
+            Exibir na Foto
+          </label>
+        </div>
+
+        <div>
+          <label className="label-xs block mb-1">Posição do Nome na Imagem</label>
+          <select
+            className="field !py-1 !text-xs"
+            value={branding.sceneTitlePosition || 'top-center'}
+            onChange={(e) => updateBranding({ sceneTitlePosition: e.target.value })}
+          >
+            <option value="top-center">Topo Centro (Padrão)</option>
+            <option value="top-left">Topo Esquerda</option>
+            <option value="bottom-center">Base Centro</option>
+            <option value="bottom-left">Base Esquerda</option>
+          </select>
+        </div>
+
+        {/* Edição do Nome e Subtítulo da Foto Ativa */}
+        {activeScene && (
+          <div className="rounded-lg p-2.5 bg-ink-950 border border-white/[0.06] space-y-2">
+            <div className="text-[11px] font-semibold text-neutral-300 flex items-center gap-1.5">
+              <Camera className="w-3.5 h-3.5 text-lime" />
+              Foto Atual: <span className="text-white">{activeScene.name}</span>
+            </div>
+            <div>
+              <label className="label-xs block mb-1">Nome desta Foto 360°</label>
+              <input
+                className="field !py-1 !text-xs"
+                value={activeScene.name || ''}
+                onChange={(e) => updateScene(activeScene.id, { name: e.target.value })}
+                placeholder="Ex: Drone 01 — Portaria"
+              />
+            </div>
+            <div>
+              <label className="label-xs block mb-1">Subtítulo / Descrição na Imagem</label>
+              <input
+                className="field !py-1 !text-xs"
+                value={activeScene.subtitle || ''}
+                onChange={(e) => updateScene(activeScene.id, { subtitle: e.target.value })}
+                placeholder="Ex: Altitude 95m • Vista Aérea Norte"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Marca d'Água Textual */}
+        <div>
+          <label className="label-xs block mb-1">Texto de Marca d'Água (Opcional)</label>
+          <input
+            className="field !py-1 !text-xs"
+            value={branding.watermarkText || ''}
+            onChange={(e) => updateBranding({ watermarkText: e.target.value })}
+            placeholder="Ex: © Lote360 • Imagens Ilustrativas"
+          />
+        </div>
+      </div>
+
+      {/* -------------------- 3. INFORMAÇÕES GERAIS -------------------- */}
       <div>
         <label className="label-xs block mb-1">Nome do Empreendimento</label>
         <input
           className="field"
           value={settings.developmentName || ''}
           onChange={(e) => updateSettings({ developmentName: e.target.value })}
+          placeholder="Ex: Residencial Vista Verde"
         />
       </div>
 
@@ -787,6 +1011,7 @@ function SettingsTab({ project, updateSettings, updateAction }) {
         />
       </div>
 
+      {/* -------------------- 4. BOTÃO DE AÇÃO / CTA -------------------- */}
       <div className="rounded-xl p-3.5 bg-ink-900/80 border border-white/[0.06] space-y-3">
         <div className="label-xs text-lime">Botão de Ação no Tablet / Player</div>
         <div>

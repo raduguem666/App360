@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Viewer360 from './Viewer360.jsx';
 import MasterplanWidget from './MasterplanWidget.jsx';
+import PanoOverlayBranding from './PanoOverlayBranding.jsx';
 import {
   STATUS,
   STATUS_LIST,
@@ -199,6 +200,14 @@ export default function PresentationView({ project, imageUrls, onExitEditor = nu
       ) : (
         <div className="grid place-items-center h-full text-mute text-sm">Nenhuma cena 360° disponível.</div>
       )}
+
+      {/* Logo da Empresa e Identificação da Foto 360° no Player */}
+      <PanoOverlayBranding
+        project={project}
+        imageUrls={imageUrls}
+        activeScene={activeScene}
+        editable={false}
+      />
 
       {/* Barra Superior: Identidade + Filtros rápidos de Status */}
       <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-center justify-between gap-3 p-4">

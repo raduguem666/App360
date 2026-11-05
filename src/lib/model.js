@@ -43,11 +43,26 @@ export function hexToRgba(hex, alpha) {
   return `rgba(${(v >> 16) & 255}, ${(v >> 8) & 255}, ${v & 255}, ${alpha})`;
 }
 
+export function defaultBranding() {
+  return {
+    enabled: true,
+    logoImageId: null,
+    position: 'top-left', // 'top-left' | 'top-right' | 'bottom-left'
+    height: 38, // 24 to 72 px
+    opacity: 100, // 40 to 100%
+    companyUrl: '',
+    showSceneTitleOnPano: true,
+    sceneTitlePosition: 'top-center', // 'top-center' | 'top-left' | 'bottom-left' | 'bottom-center'
+    watermarkText: '',
+  };
+}
+
 export function defaultSettings() {
   return {
     developmentName: 'Residencial Vista Verde',
-    companyName: 'Lote360',
+    companyName: 'Lote360 Empreendimentos',
     showLabels: true,
+    branding: defaultBranding(),
     action: {
       type: 'whatsapp', // 'whatsapp' | 'proposal' | 'link'
       label: 'Falar no WhatsApp',
@@ -81,8 +96,23 @@ export function normalizeProject(p) {
   return {
     ...base,
     ...p,
-    settings: { ...base.settings, ...(p.settings || {}), action: { ...base.settings.action, ...(p.settings?.action || {}) } },
-    scenes: p.scenes || [],
+    settings: {
+      ...base.settings,
+      ...(p.settings || {}),
+      branding: {
+        ...defaultBranding(),
+        ...(p.settings?.branding || {}),
+      },
+      action: {
+        ...base.settings.action,
+        ...(p.settings?.action || {}),
+      },
+    },
+    scenes: (p.scenes || []).map((s) => ({
+      subtitle: '',
+      showTitleOnPano: true,
+      ...s,
+    })),
     hotspots: p.hotspots || [],
     blocks: p.blocks || [],
     lots: p.lots || [],

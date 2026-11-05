@@ -62,6 +62,7 @@ export async function clearAll() {
 export function referencedImageIds(project) {
   const ids = project.scenes.map((s) => s.imageId);
   if (project.masterplan?.imageId) ids.push(project.masterplan.imageId);
+  if (project.settings?.branding?.logoImageId) ids.push(project.settings.branding.logoImageId);
   return ids;
 }
 
