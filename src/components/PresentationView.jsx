@@ -34,7 +34,7 @@ import {
   fillTemplate,
   pad,
 } from '../lib/model.js';
-import { lotMarkers, hotspotMarkers, lotCentroid } from '../lib/markers.js';
+import { lotMarkers, hotspotMarkers, textMarkers, panoImageMarkers, lotCentroid } from '../lib/markers.js';
 
 export default function PresentationView({ project, imageUrls, onExitEditor = null }) {
   const viewerRef = useRef(null);
@@ -92,8 +92,13 @@ export default function PresentationView({ project, imageUrls, onExitEditor = nu
       project.hotspots.filter((h) => h.sceneId === activeScene.id),
       { scenesById },
     );
-    return [...lotsM, ...hsM];
-  }, [activeScene, sceneLots, project.hotspots, project.settings?.showLabels, selectedLotId, statusFilter, scenesById]);
+    const texts = (project.texts || []).filter((t) => t.sceneId === activeScene.id);
+    const panoImages = (project.panoImages || []).filter((p) => p.sceneId === activeScene.id);
+    const defaultLogoUrl = project.settings?.branding?.logoImageId ? imageUrls[project.settings.branding.logoImageId] : null;
+    const textsM = textMarkers(texts, { selectedId: null, editable: false });
+    const pimgM = panoImageMarkers(panoImages, { imageUrls, defaultLogoUrl, selectedId: null, editable: false });
+    return [...lotsM, ...hsM, ...textsM, ...pimgM];
+  }, [activeScene, sceneLots, project.hotspots, project.texts, project.panoImages, project.settings?.showLabels, project.settings?.branding?.logoImageId, imageUrls, selectedLotId, statusFilter, scenesById]);
 
   const handleSphereClick = (_pos, marker) => {
     const data = marker?.config?.data || marker?.data;

@@ -46,7 +46,7 @@ export default function PanoOverlayBranding({
 
   if (!activeScene) return null;
 
-  const showLogo = branding.enabled !== false;
+  const showLogo = branding.enabled !== false && branding.showScreenLogo === true;
   const showSceneTitle =
     branding.showSceneTitleOnPano !== false && activeScene.showTitleOnPano !== false;
 

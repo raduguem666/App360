@@ -46,6 +46,7 @@ export function hexToRgba(hex, alpha) {
 export function defaultBranding() {
   return {
     enabled: true,
+    showScreenLogo: false, // Por padrão, logo agora é colocado dentro do 360° (Nadir ou esfera)
     logoImageId: null,
     position: 'top-left', // 'top-left' | 'top-right' | 'bottom-left'
     height: 38, // 24 to 72 px
@@ -85,6 +86,8 @@ export function emptyProject() {
     hotspots: [],
     blocks: [],
     lots: [],
+    texts: [], // Textos/rótulos livres escritos na imagem 360°
+    panoImages: [], // Logos e imagens posicionados na esfera 360° (Nadir no chão ou placa)
     masterplan: null,
     startSceneId: null,
   };
@@ -116,6 +119,31 @@ export function normalizeProject(p) {
     hotspots: p.hotspots || [],
     blocks: p.blocks || [],
     lots: p.lots || [],
+    texts: (p.texts || []).map((t) => ({
+      id: t.id || uid('txt'),
+      sceneId: t.sceneId,
+      yaw: +(t.yaw || 0),
+      pitch: +(t.pitch || 0),
+      text: t.text || 'Texto 360°',
+      subtitle: t.subtitle || '',
+      style: t.style || 'pin', // 'pin' | 'card' | 'badge' | 'glow'
+      fontSize: t.fontSize || 'base', // 'sm' | 'base' | 'lg' | 'xl'
+      color: t.color || '#A3E635',
+      bgColor: t.bgColor || '#121212',
+      icon: t.icon || 'map-pin',
+    })),
+    panoImages: (p.panoImages || []).map((img) => ({
+      id: img.id || uid('pimg'),
+      sceneId: img.sceneId,
+      imageId: img.imageId,
+      isNadir: Boolean(img.isNadir),
+      yaw: +(img.yaw || 0),
+      pitch: +(img.pitch ?? (img.isNadir ? -1.570796 : 0)),
+      size: +(img.size || 220),
+      shape: img.shape || 'circle', // 'circle' | 'rounded' | 'natural'
+      opacity: +(img.opacity ?? 100),
+      title: img.title || '',
+    })),
   };
 }
 

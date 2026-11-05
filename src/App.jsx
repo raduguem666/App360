@@ -18,6 +18,8 @@ import {
   ZoomOut,
   Maximize2,
   Sparkles,
+  Type,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useStore } from './store/useStore.js';
 import {
@@ -37,6 +39,8 @@ import {
   blockMarkers,
   vertexHandles,
   draftMarkers,
+  textMarkers,
+  panoImageMarkers,
   lotCentroid,
 } from './lib/markers.js';
 import Viewer360 from './components/Viewer360.jsx';
@@ -68,6 +72,8 @@ export default function App() {
   const selectedLotIds = useStore((s) => s.selectedLotIds);
   const selectedHotspotId = useStore((s) => s.selectedHotspotId);
   const selectedBlockId = useStore((s) => s.selectedBlockId);
+  const selectedTextId = useStore((s) => s.selectedTextId);
+  const selectedPanoImageId = useStore((s) => s.selectedPanoImageId);
   const toast = useStore((s) => s.toast);
 
   const setReady = useStore((s) => s.setReady);
@@ -87,6 +93,14 @@ export default function App() {
   const addHotspot = useStore((s) => s.addHotspot);
   const selectLots = useStore((s) => s.selectLots);
   const selectHotspot = useStore((s) => s.selectHotspot);
+  const selectText = useStore((s) => s.selectText);
+  const selectPanoImage = useStore((s) => s.selectPanoImage);
+  const addPanoText = useStore((s) => s.addPanoText);
+  const removePanoText = useStore((s) => s.removePanoText);
+  const movePanoText = useStore((s) => s.movePanoText);
+  const addPanoImage = useStore((s) => s.addPanoImage);
+  const removePanoImage = useStore((s) => s.removePanoImage);
+  const movePanoImage = useStore((s) => s.movePanoImage);
   const clearSelection = useStore((s) => s.clearSelection);
   const updateBlock = useStore((s) => s.updateBlock);
   const setAdjustingBlock = useStore((s) => s.setAdjustingBlock);
@@ -183,10 +197,14 @@ export default function App() {
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && !draft.length) {
         if (selectedLotIds.length) removeLots(selectedLotIds);
         else if (selectedHotspotId) removeHotspot(selectedHotspotId);
+        else if (selectedTextId) removePanoText(selectedTextId);
+        else if (selectedPanoImageId) removePanoImage(selectedPanoImageId);
       } else if (e.key.toLowerCase() === 'v') setTool('select');
       else if (e.key.toLowerCase() === 'p') setTool('polygon');
       else if (e.key.toLowerCase() === 'g') setTool('grid');
       else if (e.key.toLowerCase() === 'h') setTool('hotspot');
+      else if (e.key.toLowerCase() === 't') setTool('text');
+      else if (e.key.toLowerCase() === 'i') setTool('panoImage');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -276,6 +294,27 @@ export default function App() {
       }),
     );
 
+    // Textos e Anotações 360° escritas na imagem
+    const texts = (project.texts || []).filter((t) => t.sceneId === activeScene.id);
+    out.push(
+      ...textMarkers(texts, {
+        selectedId: selectedTextId,
+        editable: mode === 'editor',
+      }),
+    );
+
+    // Logos e Imagens espaciais na foto 360° (Nadir no chão ou placa)
+    const panoImages = (project.panoImages || []).filter((p) => p.sceneId === activeScene.id);
+    const defaultLogoUrl = project.settings?.branding?.logoImageId ? imageUrls[project.settings.branding.logoImageId] : null;
+    out.push(
+      ...panoImageMarkers(panoImages, {
+        imageUrls,
+        defaultLogoUrl,
+        selectedId: selectedPanoImageId,
+        editable: mode === 'editor',
+      }),
+    );
+
     return out;
   }, [
     activeScene,
@@ -286,13 +325,20 @@ export default function App() {
     selectedLotIds,
     selectedHotspotId,
     selectedBlockId,
+    selectedTextId,
+    selectedPanoImageId,
     adjustingBlockId,
+    project.texts,
+    project.panoImages,
     project.settings?.showLabels,
+    project.settings?.branding?.logoImageId,
+    imageUrls,
     scenesById,
     tool,
     draft,
     cursorPos,
     pendingBlock,
+    mode,
   ]);
 
   /* --------------------------------------------------- Interações na Esfera 360° */
@@ -331,7 +377,19 @@ export default function App() {
       return;
     }
 
-    // 4. Modo Seleção
+    // 4. Ferramenta Escrever Texto na Imagem 360°
+    if (tool === 'text') {
+      addPanoText({ sceneId: activeScene.id, yaw: pt.yaw, pitch: pt.pitch });
+      return;
+    }
+
+    // 5. Ferramenta Logo / Imagem na Esfera 360°
+    if (tool === 'panoImage') {
+      addPanoImage({ sceneId: activeScene.id, yaw: pt.yaw, pitch: pt.pitch });
+      return;
+    }
+
+    // 6. Modo Seleção
     if (!data) {
       clearSelection();
       return;
@@ -341,6 +399,10 @@ export default function App() {
       selectLots([data.id], { additive });
     } else if (data.type === 'hotspot') {
       selectHotspot(data.id);
+    } else if (data.type === 'text') {
+      selectText(data.id);
+    } else if (data.type === 'panoImage') {
+      selectPanoImage(data.id);
     }
   };
 
@@ -350,7 +412,7 @@ export default function App() {
     }
   };
 
-  /* Arraste em tempo real dos 4 pinos da quadra ou vértices de lote manual */
+  /* Arraste em tempo real dos 4 pinos da quadra ou vértices de lote manual ou textos/logos */
   const dragInitialRef = useRef(null);
   const handleDragStart = () => {
     dragInitialRef.current = useStore.getState().project;
@@ -363,6 +425,10 @@ export default function App() {
       updateBlock(blk.id, { corners }, { history: false });
     } else if (handle.kind === 'lot') {
       moveLotVertex(handle.id, handle.index, pos, false);
+    } else if (handle.kind === 'text') {
+      movePanoText(handle.id, pos, false);
+    } else if (handle.kind === 'panoImage') {
+      movePanoImage(handle.id, pos, false);
     }
   };
   const handleDragEnd = () => {
@@ -574,6 +640,38 @@ export default function App() {
             </div>
           )}
 
+          {tool === 'text' && (
+            <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-xl px-3.5 py-2 flex items-center gap-3 border border-lime/40 animate-[var(--animate-pop)]">
+              <Type className="w-4 h-4 text-lime" />
+              <span className="text-xs text-neutral-200">
+                Clique em qualquer ponto da foto 360° para <strong>escrever um texto/rótulo</strong>.
+              </span>
+              <button
+                type="button"
+                onClick={() => setTool('select')}
+                className="icon-btn !w-6 !h-6"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {tool === 'panoImage' && (
+            <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-xl px-3.5 py-2 flex items-center gap-3 border border-lime/40 animate-[var(--animate-pop)]">
+              <ImageIcon className="w-4 h-4 text-lime" />
+              <span className="text-xs text-neutral-200">
+                Clique na foto 360° para <strong>posicionar a logo ou imagem</strong> na esfera.
+              </span>
+              <button
+                type="button"
+                onClick={() => setTool('select')}
+                className="icon-btn !w-6 !h-6"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {adjustingBlock && (
             <div className="pointer-events-auto absolute top-3 left-1/2 -translate-x-1/2 z-20 glass rounded-xl px-3.5 py-2 flex items-center gap-3 border border-lime/40">
               <Move className="w-4 h-4 text-lime" />
@@ -664,6 +762,12 @@ export default function App() {
           }}
           onFocusHotspot={(hs) => {
             viewerRef.current?.animateTo({ yaw: hs.yaw, pitch: hs.pitch });
+          }}
+          onFocusText={(t) => {
+            viewerRef.current?.animateTo({ yaw: t.yaw, pitch: t.pitch });
+          }}
+          onFocusPanoImage={(img) => {
+            viewerRef.current?.animateTo({ yaw: img.yaw || 0, pitch: img.isNadir ? -1.570796 : img.pitch });
           }}
         />
       </div>

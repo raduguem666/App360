@@ -26,6 +26,8 @@ export const useStore = create((set, get) => ({
   selectedLotIds: [],
   selectedHotspotId: null,
   selectedBlockId: null,
+  selectedTextId: null,
+  selectedPanoImageId: null,
   layerFilter: { search: '', status: 'all', allScenes: false },
   toast: null,
   past: [],
@@ -54,6 +56,8 @@ export const useStore = create((set, get) => ({
       selectedLotIds: [],
       selectedHotspotId: null,
       selectedBlockId: null,
+      selectedTextId: null,
+      selectedPanoImageId: null,
       past: [],
       future: [],
     });
@@ -96,7 +100,7 @@ export const useStore = create((set, get) => ({
   setHotspotTarget: (id) => set({ hotspotTarget: id }),
   setLayerFilter: (patch) => set((s) => ({ layerFilter: { ...s.layerFilter, ...patch } })),
   setActiveScene: (id) =>
-    set({ activeSceneId: id, draft: [], pendingBlock: null, adjustingBlockId: null, selectedHotspotId: null, selectedBlockId: null, selectedLotIds: [] }),
+    set({ activeSceneId: id, draft: [], pendingBlock: null, adjustingBlockId: null, selectedHotspotId: null, selectedBlockId: null, selectedLotIds: [], selectedTextId: null, selectedPanoImageId: null }),
 
   /* ------------------------------------------------------------ seleção */
   selectLots: (ids, { additive = false } = {}) =>
@@ -107,14 +111,16 @@ export const useStore = create((set, get) => ({
         ids.forEach((id) => (cur.has(id) ? cur.delete(id) : cur.add(id)));
         next = [...cur];
       }
-      return { selectedLotIds: next, selectedHotspotId: null, selectedBlockId: null };
+      return { selectedLotIds: next, selectedHotspotId: null, selectedBlockId: null, selectedTextId: null, selectedPanoImageId: null };
     }),
-  selectHotspot: (id) => set({ selectedHotspotId: id, selectedLotIds: [], selectedBlockId: null }),
+  selectHotspot: (id) => set({ selectedHotspotId: id, selectedLotIds: [], selectedBlockId: null, selectedTextId: null, selectedPanoImageId: null }),
   selectBlock: (id) => {
     const lots = get().project.lots.filter((l) => l.blockId === id).map((l) => l.id);
-    set({ selectedBlockId: id, selectedLotIds: lots, selectedHotspotId: null });
+    set({ selectedBlockId: id, selectedLotIds: lots, selectedHotspotId: null, selectedTextId: null, selectedPanoImageId: null });
   },
-  clearSelection: () => set({ selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null }),
+  selectText: (id) => set({ selectedTextId: id, selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null, selectedPanoImageId: null }),
+  selectPanoImage: (id) => set({ selectedPanoImageId: id, selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null, selectedTextId: null }),
+  clearSelection: () => set({ selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null, selectedTextId: null, selectedPanoImageId: null }),
 
   /* ------------------------------------------------------------ rascunho */
   addDraftPoint: (pt) => set((s) => ({ draft: [...s.draft, pt] })),
@@ -360,6 +366,119 @@ export const useStore = create((set, get) => ({
     }));
     get().showToast('Logo da empresa removido.', 'ok');
   },
+  /* ------------------------------------------------------------ textos 360° */
+  addPanoText: ({ sceneId, yaw, pitch, text = 'Novo Rótulo', subtitle = '', style = 'pin', fontSize = 'base', color = '#A3E635', bgColor = '#121212', icon = 'map-pin' }) => {
+    const t = {
+      id: uid('txt'),
+      sceneId: sceneId || get().activeSceneId,
+      yaw: +yaw.toFixed(6),
+      pitch: +pitch.toFixed(6),
+      text,
+      subtitle,
+      style,
+      fontSize,
+      color,
+      bgColor,
+      icon,
+    };
+    get().commit((p) => ({ ...p, texts: [...(p.texts || []), t] }));
+    set({ selectedTextId: t.id, tool: 'select', selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null, selectedPanoImageId: null });
+    get().showToast('Texto adicionado na imagem 360°!', 'ok');
+    return t;
+  },
+  updatePanoText: (id, patch, { history = true } = {}) =>
+    get().commit(
+      (p) => ({
+        ...p,
+        texts: (p.texts || []).map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      }),
+      { history },
+    ),
+  removePanoText: (id) => {
+    get().commit((p) => ({
+      ...p,
+      texts: (p.texts || []).filter((t) => t.id !== id),
+    }));
+    set((s) => ({ selectedTextId: s.selectedTextId === id ? null : s.selectedTextId }));
+    get().showToast('Texto removido da imagem.', 'ok');
+  },
+  movePanoText: (id, pos, history = false) =>
+    get().commit(
+      (p) => ({
+        ...p,
+        texts: (p.texts || []).map((t) => (t.id === id ? { ...t, yaw: pos.yaw, pitch: pos.pitch } : t)),
+      }),
+      { history },
+    ),
+
+  /* ------------------------------------------------------------ imagens e logo no 360° */
+  addPanoImage: ({ sceneId, imageId = null, yaw = 0, pitch = 0, isNadir = false, size = 240, shape = 'circle', opacity = 100, title = '' }) => {
+    const targetImageId = imageId || get().project.settings.branding?.logoImageId;
+    if (!targetImageId) {
+      get().showToast('Faça o upload da logo da empresa para inserir na esfera 360°!', 'warn');
+      return null;
+    }
+    const img = {
+      id: uid('pimg'),
+      sceneId: sceneId || get().activeSceneId,
+      imageId: targetImageId,
+      isNadir: Boolean(isNadir),
+      yaw: isNadir ? 0 : +yaw.toFixed(6),
+      pitch: isNadir ? -1.570796 : +pitch.toFixed(6),
+      size,
+      shape,
+      opacity,
+      title: title || (isNadir ? 'Logo da Empresa (Nadir)' : 'Logo 360°'),
+    };
+    get().commit((p) => ({ ...p, panoImages: [...(p.panoImages || []), img] }));
+    set({ selectedPanoImageId: img.id, tool: 'select', selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null, selectedTextId: null });
+    get().showToast(isNadir ? 'Logo posicionada no chão da foto 360° (Nadir)!' : 'Logo inserida na foto 360°!', 'ok');
+    return img;
+  },
+  addNadirLogo: (sceneId) => {
+    const targetSceneId = sceneId || get().activeSceneId;
+    const existing = (get().project.panoImages || []).find((p) => p.sceneId === targetSceneId && p.isNadir);
+    if (existing) {
+      set({ selectedPanoImageId: existing.id, tool: 'select', selectedLotIds: [], selectedHotspotId: null, selectedBlockId: null, selectedTextId: null });
+      get().showToast('Logo do Nadir já existe nesta cena. Selecionada para edição!', 'info');
+      return existing;
+    }
+    return get().addPanoImage({
+      sceneId: targetSceneId,
+      isNadir: true,
+      size: 260,
+      shape: 'circle',
+      opacity: 100,
+      title: 'Logo no Nadir',
+    });
+  },
+  updatePanoImage: (id, patch, { history = true } = {}) =>
+    get().commit(
+      (p) => ({
+        ...p,
+        panoImages: (p.panoImages || []).map((img) => (img.id === id ? { ...img, ...patch } : img)),
+      }),
+      { history },
+    ),
+  removePanoImage: (id) => {
+    get().commit((p) => ({
+      ...p,
+      panoImages: (p.panoImages || []).filter((img) => img.id !== id),
+    }));
+    set((s) => ({ selectedPanoImageId: s.selectedPanoImageId === id ? null : s.selectedPanoImageId }));
+    get().showToast('Imagem/Logo removida da foto 360°.', 'ok');
+  },
+  movePanoImage: (id, pos, history = false) =>
+    get().commit(
+      (p) => ({
+        ...p,
+        panoImages: (p.panoImages || []).map((img) =>
+          img.id === id && !img.isNadir ? { ...img, yaw: pos.yaw, pitch: pos.pitch } : img
+        ),
+      }),
+      { history },
+    ),
+
   renameProject: (name) => get().commit((p) => ({ ...p, name })),
 }));
 
@@ -396,6 +515,8 @@ function sanitizeSelection(project, state) {
     selectedLotIds: state.selectedLotIds.filter((id) => lotIds.has(id)),
     selectedHotspotId: project.hotspots.some((h) => h.id === state.selectedHotspotId) ? state.selectedHotspotId : null,
     selectedBlockId: project.blocks.some((b) => b.id === state.selectedBlockId) ? state.selectedBlockId : null,
+    selectedTextId: (project.texts || []).some((t) => t.id === state.selectedTextId) ? state.selectedTextId : null,
+    selectedPanoImageId: (project.panoImages || []).some((img) => img.id === state.selectedPanoImageId) ? state.selectedPanoImageId : null,
     adjustingBlockId: project.blocks.some((b) => b.id === state.adjustingBlockId) ? state.adjustingBlockId : null,
     activeSceneId: project.scenes.some((s) => s.id === state.activeSceneId) ? state.activeSceneId : project.scenes[0]?.id || null,
   };

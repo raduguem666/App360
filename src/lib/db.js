@@ -63,6 +63,9 @@ export function referencedImageIds(project) {
   const ids = project.scenes.map((s) => s.imageId);
   if (project.masterplan?.imageId) ids.push(project.masterplan.imageId);
   if (project.settings?.branding?.logoImageId) ids.push(project.settings.branding.logoImageId);
+  if (project.panoImages) {
+    project.panoImages.forEach((p) => p.imageId && ids.push(p.imageId));
+  }
   return ids;
 }
 

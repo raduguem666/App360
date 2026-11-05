@@ -22,6 +22,9 @@ import {
   RotateCcw,
   HardDrive,
   ChevronDown,
+  Type,
+  Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react';
 import { useStore } from '../store/useStore.js';
 import {
@@ -50,6 +53,7 @@ export default function TopToolbar({ onResetDemo }) {
   const showToast = useStore((s) => s.showToast);
   const hotspotTarget = useStore((s) => s.hotspotTarget);
   const setHotspotTarget = useStore((s) => s.setHotspotTarget);
+  const addNadirLogo = useStore((s) => s.addNadirLogo);
 
   const otherScenes = project.scenes.filter((s) => s.id !== activeSceneId);
 
@@ -183,6 +187,31 @@ export default function TopToolbar({ onResetDemo }) {
           label="Hotspot 360°"
           shortcut="H"
         />
+        <ToolButton
+          active={tool === 'text'}
+          onClick={() => setTool('text')}
+          icon={Type}
+          label="Escrever Texto"
+          shortcut="T"
+        />
+        <ToolButton
+          active={tool === 'panoImage'}
+          onClick={() => setTool('panoImage')}
+          icon={ImageIcon}
+          label="Logo na Foto"
+          shortcut="I"
+        />
+
+        <button
+          type="button"
+          onClick={() => addNadirLogo()}
+          title="Inserir Logo da Empresa no Chão (Nadir da foto 360°)"
+          className="btn-ghost !px-2 !py-1 text-[11px] font-semibold text-lime hover:bg-lime/10 border border-lime/20 rounded-lg flex items-center gap-1"
+        >
+          <Sparkles className="w-3 h-3 text-lime" />
+          <span className="hidden xl:inline">Logo no Chão (Nadir)</span>
+          <span className="xl:hidden">Nadir</span>
+        </button>
 
         {tool === 'hotspot' && otherScenes.length > 0 && (
           <select

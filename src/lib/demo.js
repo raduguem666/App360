@@ -416,6 +416,53 @@ export async function buildDemoProject(onProgress = () => {}) {
   };
   project.blocks = [block];
   project.lots = generateDemoLots(block);
+
+  // Textos e anotações demonstrativas na foto 360°
+  project.texts = [
+    {
+      id: uid('txt'),
+      sceneId: scenes[0].id,
+      yaw: 0.65,
+      pitch: -0.28,
+      text: 'Futuro Clube & Piscinas',
+      subtitle: 'Quadras esportivas e espaço gourmet',
+      style: 'card',
+      fontSize: 14,
+      color: '#ffffff',
+      bgColor: '#1e1e1e',
+      icon: 'waves',
+    },
+    {
+      id: uid('txt'),
+      sceneId: scenes[0].id,
+      yaw: -1.15,
+      pitch: -0.18,
+      text: 'Bosque de Preservação',
+      subtitle: '30.000 m² de mata nativa',
+      style: 'pin',
+      fontSize: 13,
+      color: '#ffffff',
+      bgColor: '#15803d',
+      icon: 'tree',
+    },
+  ];
+
+  // Logotipo no chão 360° (Nadir / cobertura do drone)
+  project.panoImages = [
+    {
+      id: uid('pimg'),
+      sceneId: scenes[0].id,
+      yaw: 0,
+      pitch: -1.570796,
+      imageId: null,
+      title: 'Lote360 Empreendimentos',
+      size: 260,
+      shape: 'circle',
+      opacity: 100,
+      isNadir: true,
+    },
+  ];
+
   onProgress('Pronto!', 1);
   return { project, images };
 }
