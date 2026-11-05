@@ -1,0 +1,52 @@
+name: Compilar Executável Windows (Lote360 Studio)
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Compilar aplicativo para Windows (.exe portátil e instalador)
+        run: npm run electron:build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Salvar executáveis como Artefatos de Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lote360-Studio-Windows-EXE
+          path: |
+            release/*.exe
+            !release/*-unpacked/**
+          retention-days: 30
+
+      - name: Publicar Release no GitHub (se for tag de versão)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
