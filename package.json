@@ -1,0 +1,56 @@
+{
+  "name": "lote360-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lote360 Studio — App Desktop Windows (Electron) + Web Studio + Player Offline para mapeamento interativo de loteamentos em fotos 360° de drone",
+  "author": "Lote360 Studio",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "build:player": "vite build --config vite.player.config.js",
+    "predev": "npm run build:player",
+    "dev": "vite",
+    "prebuild": "npm run build:player",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:start": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win portable nsis"
+  },
+  "build": {
+    "appId": "com.lote360.studio",
+    "productName": "Lote360 Studio",
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@photo-sphere-viewer/core": "^5.15.1",
+    "@photo-sphere-viewer/markers-plugin": "^5.15.1",
+    "idb": "^8.0.4",
+    "lucide-react": "^1.69.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "~0.185.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.4",
+    "@vitejs/plugin-react": "^6.2.1",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12",
+    "tailwindcss": "^4.3.4",
+    "vite": "^8.3.6"
+  }
+}
